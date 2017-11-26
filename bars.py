@@ -38,10 +38,10 @@ def get_distance(source_point, some_bar):
     delta_longitude = \
         radians(some_bar['geometry']['coordinates'][LONGITUDE]
                 - source_point[LONGITUDE])
-    '''the formula for the distance is calculated by Lexander
-     (lizz4mail@gmail.com)  based on Pifagorean theorem wit the assumptions
-     that the Earth is round in general, and on the scale of the Moscow
-     region it is flat.'''
+    ''' the formula for the distance is calculated by Lexander
+        (lizz4mail@gmail.com)  based on Pifagorean theorem wit the assumptions
+        that the Earth is round in general, and on the scale of the Moscow
+        region it is flat.'''
     distance = EARTH_RADIUS * sqrt(delta_latitude ** 2 + \
                                    (delta_longitude *
                                     cos(radians(some_bar['geometry']
@@ -74,12 +74,12 @@ def input_coordinates():
 
 def get_bar_description(json_data, bar_ID):
 
-    bar_attributes = tuple(bar['properties']['Attributes']
+    bar_attributes = [bar['properties']['Attributes']
                       for bar in json_data['features']
                       if bar['properties']['Attributes']
-                      ['global_id'] == bar_ID)
+                      ['global_id'] == bar_ID][0]
 
-    return bar_attributes[0]
+    return bar_attributes
 
 
 def output_results(json_data, the_biggest_ID, the_smallest_ID,
@@ -95,7 +95,7 @@ def output_results(json_data, the_biggest_ID, the_smallest_ID,
                  smallest_bar['SeatsCount']))
 
 
-    if closest_bar_ID:
+    if the_closest_ID:
         closest_bar = get_bar_description(json_data, the_closest_ID)
         print('\nБлижайший бар - "{}, {}", расстояние {:.2f} км'.
               format(closest_bar['Name'], closest_bar['Address'],
@@ -121,10 +121,7 @@ if __name__ == '__main__':
                 output_results(json_data, biggest_bar_ID, smallest_bar_ID,
                                closest_bar_ID, min_distance)
             else:
-
-                output_results(json_data, biggest_bar_ID, smallest_bar_ID,
-                               closest_bar_ID, min_distance)
-
+                output_results(json_data, biggest_bar_ID, smallest_bar_ID)
         else:
             print("File or directory {} not found".format(sys.argv[1]))
     else:
