@@ -9,27 +9,24 @@ EARTH_RADIUS = 6373
 
 
 def load_data(filepath):
-    try:
-        with open(filepath, 'r') as loaded_data:
-            return json.load(loaded_data)
-    except FileNotFoundError:
-        return None
+    with open(filepath, 'r') as loaded_data:
+        return json.load(loaded_data)
 
 
 def get_biggest_bar(json_data):
     the_biggest_bar = \
         max(json_data['features'],
-            key=lambda x: x['properties']['Attributes']['SeatsCount'])
-    bar_ID = the_biggest_bar['properties']['Attributes']['global_id']
-    return bar_ID
+            key=lambda x: x['properties']['Attributes']
+            ['SeatsCount'])['properties']['Attributes']
+    return the_biggest_bar
 
 
 def get_smallest_bar(json_data):
     the_smallest_bar = \
         min(json_data['features'],
-            key=lambda x: x['properties']['Attributes']['SeatsCount'])
-    bar_ID = the_smallest_bar['properties']['Attributes']['global_id']
-    return bar_ID
+            key=lambda x: x['properties']['Attributes']
+            ['SeatsCount'])['properties']['Attributes']
+    return the_smallest_bar
 
 
 def get_distance(source_point, some_bar):
@@ -51,13 +48,13 @@ def get_distance(source_point, some_bar):
 
 
 def get_closest_bar(json_data, longitude, latitude):
+    if not (longitude and latitude):
+        return None, None
     current_point = [longitude, latitude]
-
     the_nearest_bar = min(json_data['features'],
-                          key=lambda x: get_distance(current_point,x))
-    bar_ID = the_nearest_bar['properties']['Attributes']['global_id']
+                          key=lambda x: get_distance(current_point, x))
     distance = get_distance(current_point, the_nearest_bar)
-    return bar_ID, distance
+    return the_nearest_bar['properties']['Attributes'], distance
 
 
 def input_coordinates():
@@ -72,31 +69,14 @@ def input_coordinates():
         return 0, 0
 
 
-def get_bar_description(json_data, bar_ID):
-
-    bar_attributes = [bar['properties']['Attributes']
-                      for bar in json_data['features']
-                      if bar['properties']['Attributes']
-                      ['global_id'] == bar_ID][0]
-
-    return bar_attributes
-
-
-def output_results(json_data, the_biggest_ID, the_smallest_ID,
-                           the_closest_ID='', min_distance=0):
-    biggest_bar = get_bar_description(json_data, the_biggest_ID)
+def output_results(biggest_bar, smallest_bar, closest_bar='', min_distance=0):
     print('\nСамый большой бар - "{}, {}", {} мест'.
           format(biggest_bar['Name'], biggest_bar['Address'],
                  biggest_bar['SeatsCount']))
-
-    smallest_bar = get_bar_description(json_data, the_smallest_ID)
     print('\nСамый маленький бар - "{}, {}", {} мест'.
           format(smallest_bar['Name'], smallest_bar['Address'],
                  smallest_bar['SeatsCount']))
-
-
-    if the_closest_ID:
-        closest_bar = get_bar_description(json_data, the_closest_ID)
+    if closest_bar:
         print('\nБлижайший бар - "{}, {}", расстояние {:.2f} км'.
               format(closest_bar['Name'], closest_bar['Address'],
                      min_distance))
@@ -107,22 +87,17 @@ def output_results(json_data, the_biggest_ID, the_smallest_ID,
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        json_data = load_data(sys.argv[1])
-        if json_data:
-            biggest_bar_ID = get_biggest_bar(json_data)
-            smallest_bar_ID = get_smallest_bar(json_data)
+        try:
+            json_data = load_data(sys.argv[1])
+            biggest_bar = get_biggest_bar(json_data)
+            smallest_bar = get_smallest_bar(json_data)
             current_longitude, current_latitude = input_coordinates()
-
-            if current_longitude and current_latitude:
-                closest_bar_ID, min_distance = get_closest_bar(json_data,
-                                                   current_longitude,
-                                                   current_latitude)
-                output_results(json_data, biggest_bar_ID, smallest_bar_ID,
-                               closest_bar_ID, min_distance)
-            else:
-                output_results(json_data, biggest_bar_ID, smallest_bar_ID)
-        else:
-            print("File or directory {} not found".format(sys.argv[1]))
-    else:
-        print("Using: python3 bars.py <path to file>")
+            closest_bar, min_distance = get_closest_bar(json_data,
+                                                        current_longitude,
+                                                        current_latitude)
+            output_results(biggest_bar, smallest_bar,
+                               closest_bar, min_distance)
+        except FileNotFoundError as error:
+            print(error)
+        except IndexError:
+            print("Using: python3 bars.py <path to file>")
