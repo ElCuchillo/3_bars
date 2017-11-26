@@ -5,7 +5,6 @@ from math import cos, radians, sqrt
 
 LONGITUDE = 0
 LATITUDE = 1
-SEATS = 2
 EARTH_RADIUS = 6373
 
 
@@ -17,41 +16,49 @@ def load_data(filepath):
         return None
 
 
-def parse_data(parsed_data):
-    all_bars_dict = {}
-    for bar_info in parsed_data['features']:
-        bar_name = bar_info['properties']['Attributes']['Name'] + ', ' + \
-                   bar_info['properties']['Attributes']['Address']
-        bar_options = [bar_info['geometry']['coordinates'][LONGITUDE], \
-                       bar_info['geometry']['coordinates'][LATITUDE], \
-                       bar_info['properties']['Attributes']['SeatsCount']
-                       ]
-        all_bars_dict.update({bar_name: bar_options})
-    return all_bars_dict
+def get_biggest_bar(json_data):
+    the_biggest_bar = \
+        max(json_data['features'],
+            key=lambda x: x['properties']['Attributes']['SeatsCount'])
+    bar_ID = the_biggest_bar['properties']['Attributes']['global_id']
+    return bar_ID
 
 
-def get_biggest_bar(bars_data):
-    return max(bars_data, key=lambda x: bars_data[x][SEATS])
-
-
-def get_smallest_bar(bars_data):
-    return min(bars_data, key=lambda x: bars_data[x][SEATS])
+def get_smallest_bar(json_data):
+    the_smallest_bar = \
+        min(json_data['features'],
+            key=lambda x: x['properties']['Attributes']['SeatsCount'])
+    bar_ID = the_smallest_bar['properties']['Attributes']['global_id']
+    return bar_ID
 
 
 def get_distance(source_point, some_bar):
-    delta_latitude = radians(some_bar[LATITUDE] - source_point[LATITUDE])
-    delta_longitude = radians(some_bar[LONGITUDE] - \
-                              source_point[LONGITUDE])
+    delta_latitude = radians(some_bar['geometry']['coordinates'][LATITUDE] - \
+                             source_point[LATITUDE])
+    delta_longitude = \
+        radians(some_bar['geometry']['coordinates'][LONGITUDE]
+                - source_point[LONGITUDE])
+    '''the formula for the distance is calculated by Lexander
+     (lizz4mail@gmail.com)  based on Pifagorean theorem wit the assumptions
+     that the Earth is round in general, and on the scale of the Moscow
+     region it is flat.'''
     distance = EARTH_RADIUS * sqrt(delta_latitude ** 2 + \
-                                   (delta_longitude * \
-                                    cos(radians(some_bar[LATITUDE]))) ** 2)
+                                   (delta_longitude *
+                                    cos(radians(some_bar['geometry']
+                                                ['coordinates']
+                                                [LATITUDE]))) ** 2)
     return distance
 
 
-def get_closest_bar(bars_data, longitude, latitude):
+def get_closest_bar(json_data, longitude, latitude):
     current_point = [longitude, latitude]
-    return min(bars_data, key=lambda x: get_distance(current_point,
-                                                     bars_data[x]))
+
+    the_nearest_bar = min(json_data['features'],
+                          key=lambda x: get_distance(current_point,x))
+    bar_ID = the_nearest_bar['properties']['Attributes']['global_id']
+    distance = get_distance(current_point, the_nearest_bar)
+    return bar_ID, distance
+
 
 def input_coordinates():
     print('Для нахождения ближайшего бара введите текущие gps-координаты'
@@ -65,15 +72,35 @@ def input_coordinates():
         return 0, 0
 
 
-def output_results(all_bars_dict, the_biggest, the_smallest,
-                           the_closest='', min_distance=0):
-    print('\nСамый большой бар - "{}", {} мест'.
-          format(the_biggest, all_bars_dict[the_biggest][SEATS]))
-    print('\nСамый маленький бар - "{}", {} мест'.
-          format(the_smallest, all_bars_dict[the_smallest][SEATS]))
-    if the_closest:
-        print('\nБлижайший бар - "{}", расстояние {:.2f} км'.
-               format(the_closest, min_distance))
+def get_bar_description(json_data, bar_ID):
+
+    bar_attributes = tuple(bar['properties']['Attributes']
+                      for bar in json_data['features']
+                      if bar['properties']['Attributes']
+                      ['global_id'] == bar_ID)
+
+    return bar_attributes[0]
+
+
+def output_results(json_data, the_biggest_ID, the_smallest_ID,
+                           the_closest_ID='', min_distance=0):
+    biggest_bar = get_bar_description(json_data, the_biggest_ID)
+    print('\nСамый большой бар - "{}, {}", {} мест'.
+          format(biggest_bar['Name'], biggest_bar['Address'],
+                 biggest_bar['SeatsCount']))
+
+    smallest_bar = get_bar_description(json_data, the_smallest_ID)
+    print('\nСамый маленький бар - "{}, {}", {} мест'.
+          format(smallest_bar['Name'], smallest_bar['Address'],
+                 smallest_bar['SeatsCount']))
+
+
+    if closest_bar_ID:
+        closest_bar = get_bar_description(json_data, the_closest_ID)
+        print('\nБлижайший бар - "{}, {}", расстояние {:.2f} км'.
+              format(closest_bar['Name'], closest_bar['Address'],
+                     min_distance))
+
     else:
         print('\nБлижайший бар найти не удалось, т.к. не введены '
               'текущие координаты.')
@@ -81,25 +108,22 @@ def output_results(all_bars_dict, the_biggest, the_smallest,
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        loaded_data = load_data(sys.argv[1])
-        if loaded_data:
-            all_bars_dict = parse_data(loaded_data)
-            the_biggest = get_biggest_bar(all_bars_dict)
-            the_smallest = get_smallest_bar(all_bars_dict)
+        json_data = load_data(sys.argv[1])
+        if json_data:
+            biggest_bar_ID = get_biggest_bar(json_data)
+            smallest_bar_ID = get_smallest_bar(json_data)
             current_longitude, current_latitude = input_coordinates()
 
             if current_longitude and current_latitude:
-                the_closest = get_closest_bar(all_bars_dict,
-                                              current_longitude,
-                                              current_latitude)
-                current_point = [current_longitude,current_latitude]
-                min_distance = get_distance(current_point,
-                                        all_bars_dict[the_closest])
-                output_results(all_bars_dict, the_biggest, the_smallest,
-                               the_closest, min_distance)
+                closest_bar_ID, min_distance = get_closest_bar(json_data,
+                                                   current_longitude,
+                                                   current_latitude)
+                output_results(json_data, biggest_bar_ID, smallest_bar_ID,
+                               closest_bar_ID, min_distance)
             else:
 
-                output_results(all_bars_dict, the_biggest, the_smallest)
+                output_results(json_data, biggest_bar_ID, smallest_bar_ID,
+                               closest_bar_ID, min_distance)
 
         else:
             print("File or directory {} not found".format(sys.argv[1]))
