@@ -3,9 +3,6 @@ import json
 from math import cos, radians, sqrt
 
 
-LONGITUDE, LATITUDE = 0, 1
-
-
 def load_data(filepath):
     with open(filepath, 'r') as file:
         return json.load(file)
@@ -26,11 +23,13 @@ def get_smallest_bar(bar_data):
 
 
 def get_distance(source_point, some_bar):
+    longitude, latitude = 0, 1
     earth_radius= 6373
-    delta_latitude = (radians(some_bar['geometry']['coordinates'][LATITUDE]
-                              - source_point[LATITUDE]))
-    delta_longitude = (radians(some_bar['geometry']['coordinates'][LONGITUDE]
-                       - source_point[LONGITUDE]))
+
+    delta_latitude = (radians(some_bar['geometry']['coordinates'][latitude]
+                              - source_point[latitude]))
+    delta_longitude = (radians(some_bar['geometry']['coordinates'][longitude]
+                       - source_point[longitude]))
     ''' the formula for the distance is calculated by Lexander
         (lizz4mail@gmail.com)  based on Pifagorean theorem wit the assumptions
         that the Earth is round in general, and on the scale of the Moscow
@@ -39,7 +38,7 @@ def get_distance(source_point, some_bar):
                                     + (delta_longitude
                                        * cos(radians(some_bar['geometry']
                                                              ['coordinates']
-                                                             [LATITUDE])))
+                                                             [latitude])))
                                     ** 2))
     return distance
 
@@ -66,39 +65,38 @@ def input_coordinates():
         return 0, 0
 
 
-def output_results(biggest_bar_attr, smallest_bar_attr, closest_bar_attr='',
-                   min_distance=0):
-    print('\nСамый большой бар - "{}, {}", {} мест'.
-          format(biggest_bar_attr['properties']['Attributes']['Name'],
-                 biggest_bar_attr['properties']['Attributes']['Address'],
-                 biggest_bar_attr['properties']['Attributes']['SeatsCount']))
-    print('\nСамый маленький бар - "{}, {}", {} мест'.
-          format(smallest_bar_attr['properties']['Attributes']['Name'],
-                 smallest_bar_attr['properties']['Attributes']['Address'],
-                 smallest_bar_attr['properties']['Attributes']['SeatsCount']))
-    if closest_bar_attr:
-        print('\nБлижайший бар - "{}, {}", расстояние {:.2f} км'.
-              format(closest_bar_attr['properties']['Attributes']['Name'],
-                     closest_bar_attr['properties']['Attributes']['Address'],
-                     min_distance))
+def get_bar_properties(some_bar):
 
+    return (some_bar['properties']['Attributes']['Name'],
+            some_bar['properties']['Attributes']['Address'],
+            some_bar['properties']['Attributes']['SeatsCount'])
+
+
+def output_results(biggest_bar, smallest_bar, closest_bar='', min_distance=0):
+    print('\nСамый большой бар - "{0[0]}, {0[1]}", {0[2]} мест'.
+          format(get_bar_properties(biggest_bar)))
+    print('\nСамый маленький бар - "{0[0]}, {0[1]}", {0[2]} мест'.
+          format(get_bar_properties(smallest_bar)))
+    if closest_bar:
+        print('\nБлижайший бар - "{0[0]}, {0[1]}", {0[2]} мест, '
+              'расстояние {1:.2f} км'.
+              format(get_bar_properties(closest_bar), min_distance))
     else:
         print('\nБлижайший бар найти не удалось, т.к. не введены '
               'текущие координаты.')
 
 
 if __name__ == '__main__':
-        try:
-            bar_data = load_data(sys.argv[1])
-            biggest_bar = get_biggest_bar(bar_data)
-            smallest_bar = get_smallest_bar(bar_data)
-            current_longitude, current_latitude = input_coordinates()
-            closest_bar, min_distance = get_closest_bar(bar_data,
-                                                        current_longitude,
-                                                        current_latitude)
-            output_results(biggest_bar, smallest_bar, closest_bar,
-                           min_distance)
-        except FileNotFoundError as error:
-            print(error)
-        except IndexError:
-            print("Using: python3 bars.py <path to file>")
+    try:
+        bar_data = load_data(sys.argv[1])
+        biggest_bar = get_biggest_bar(bar_data)
+        smallest_bar = get_smallest_bar(bar_data)
+        current_longitude, current_latitude = input_coordinates()
+        closest_bar, min_distance = get_closest_bar(bar_data,
+                                                    current_longitude,
+                                                    current_latitude)
+        output_results(biggest_bar, smallest_bar, closest_bar, min_distance)
+    except FileNotFoundError as error:
+        print(error)
+    except IndexError:
+        print("Using: python3 bars.py <path to file>")
