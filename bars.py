@@ -3,7 +3,7 @@ import json
 from math import cos, radians, sqrt
 
 
-LONGITUDE, LATITUDE  = 0, 1
+LONGITUDE, LATITUDE = 0, 1
 
 
 def load_data(filepath):
@@ -13,15 +13,15 @@ def load_data(filepath):
 
 def get_biggest_bar(bar_data):
     the_biggest_bar = (max(bar_data['features'], key=lambda x:
-                           x['properties']['Attributes']['SeatsCount'])
-                          ['properties']['Attributes'])
+                           x['properties']['Attributes']['SeatsCount']))
+
     return the_biggest_bar
 
 
 def get_smallest_bar(bar_data):
     the_smallest_bar = (min(bar_data['features'], key=lambda x:
-                           x['properties']['Attributes']['SeatsCount'])
-                           ['properties']['Attributes'])
+                           x['properties']['Attributes']['SeatsCount']))
+
     return the_smallest_bar
 
 
@@ -51,7 +51,7 @@ def get_closest_bar(bar_data, longitude, latitude):
     the_nearest_bar = min(bar_data['features'],
                           key=lambda x: get_distance(current_point, x))
     distance = get_distance(current_point, the_nearest_bar)
-    return the_nearest_bar['properties']['Attributes'], distance
+    return the_nearest_bar, distance
 
 
 def input_coordinates():
@@ -69,14 +69,17 @@ def input_coordinates():
 def output_results(biggest_bar_attr, smallest_bar_attr, closest_bar_attr='',
                    min_distance=0):
     print('\nСамый большой бар - "{}, {}", {} мест'.
-          format(biggest_bar_attr['Name'], biggest_bar_attr['Address'],
-                 biggest_bar_attr['SeatsCount']))
+          format(biggest_bar_attr['properties']['Attributes']['Name'],
+                 biggest_bar_attr['properties']['Attributes']['Address'],
+                 biggest_bar_attr['properties']['Attributes']['SeatsCount']))
     print('\nСамый маленький бар - "{}, {}", {} мест'.
-          format(smallest_bar_attr['Name'], smallest_bar_attr['Address'],
-                 smallest_bar_attr['SeatsCount']))
+          format(smallest_bar_attr['properties']['Attributes']['Name'],
+                 smallest_bar_attr['properties']['Attributes']['Address'],
+                 smallest_bar_attr['properties']['Attributes']['SeatsCount']))
     if closest_bar_attr:
         print('\nБлижайший бар - "{}, {}", расстояние {:.2f} км'.
-              format(closest_bar_attr['Name'], closest_bar_attr['Address'],
+              format(closest_bar_attr['properties']['Attributes']['Name'],
+                     closest_bar_attr['properties']['Attributes']['Address'],
                      min_distance))
 
     else:
@@ -87,14 +90,14 @@ def output_results(biggest_bar_attr, smallest_bar_attr, closest_bar_attr='',
 if __name__ == '__main__':
         try:
             bar_data = load_data(sys.argv[1])
-            biggest_bar_attr = get_biggest_bar(bar_data)
-            smallest_bar_attr = get_smallest_bar(bar_data)
+            biggest_bar = get_biggest_bar(bar_data)
+            smallest_bar = get_smallest_bar(bar_data)
             current_longitude, current_latitude = input_coordinates()
-            closest_bar_attr, min_distance = get_closest_bar(bar_data,
-                                                             current_longitude,
-                                                             current_latitude)
-            output_results(biggest_bar_attr, smallest_bar_attr,
-                           closest_bar_attr, min_distance)
+            closest_bar, min_distance = get_closest_bar(bar_data,
+                                                        current_longitude,
+                                                        current_latitude)
+            output_results(biggest_bar, smallest_bar, closest_bar,
+                           min_distance)
         except FileNotFoundError as error:
             print(error)
         except IndexError:
